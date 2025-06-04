@@ -1,0 +1,11 @@
+Contract ID,Property Name,Location,Contract Value,Start Date,End Date,Buyer Name,Buyer Email,Agent Name,Agent Contact,Property Type,Status
+RE-001,Palm Grove Villas,"Miami, FL","$2,500,000",2024-03-01,2025-03-01,Emily Clark,emily.clark@example.com,Nathan Drake,(305) 555-0198,Residential,Active
+RE-002,Sunset Business Park,"Austin, TX","$5,750,000",2023-09-15,2026-09-14,James Nolan,james.nolan@bizmail.com,Lara Knight,(512) 555-0112,Commercial,Under Review
+RE-003,Highland Apartments,"Denver, CO","$3,200,000",2024-01-10,2025-12-31,Sophia Reyes,sophia.reyes@example.com,Chris Bell,(720) 555-0147,Residential,Pending
+RE-004,TechPoint Campus,"San Jose, CA","$12,000,000",2022-06-01,2027-06-01,Alan Grant,alan.grant@techcorp.com,Jill Valentine,(408) 555-0173,Commercial,Completed
+RE-005,Oceanview Condos,"Santa Monica, CA","$4,800,000",2023-04-20,2026-04-20,Rachel Adams,rachel.adams@homes.com,Leon Kennedy,(310) 555-0166,Residential,Active
+RE-006,Maple Ridge Townhomes,"Portland, OR","$2,150,000",2023-05-10,2024-05-10,David Park,david.park@realtormail.com,Ada Wong,(503) 555-0123,Residential,Under Review
+RE-007,Liberty Office Tower,"Chicago, IL","$9,900,000",2022-11-01,2027-11-01,Laura Kim,laura.kim@enterprisemail.com,Carlos Oliveira,(312) 555-0188,Commercial,Active
+RE-008,Crescent Heights Estate,"Nashville, TN","$1,850,000",2024-02-01,2025-08-01,Brian Shaw,bshaw@homesecure.com,Claire Redfield,(615) 555-0199,Residential,Pending
+RE-009,Greenway Industrial Park,"Columbus, OH","$6,300,000",2023-07-15,2028-07-14,Henry Wells,henry.w@manufacture.com,Rebecca Chambers,(614) 555-0134,Commercial,Completed
+RE-010,Harbor Bay Apartments,"Tampa, FL","$2,950,000",2023-10-01,2026-10-01,Megan Young,megan.young@bayhomes.com,Barry Burton,(813) 555-0156,Residential,Active
