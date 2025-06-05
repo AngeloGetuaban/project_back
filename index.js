@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
-  'https://project-front-zeta.vercel.app',
+  'https://project-front-c81k5yhrb-angelos-projects-17db4d4b.vercel.app',
   'http://localhost:5178']
 // ✅ CORS config
 app.use(cors({
