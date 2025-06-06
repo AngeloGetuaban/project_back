@@ -84,12 +84,25 @@ const addDepartment = async (req, res) => {
 // POST /api/super-admin/user
 const addUser = async (req, res) => {
   try {
-    const { email, password, first_name, last_name, role, department } = req.body;
+    const { username, email, password, first_name, last_name, role, department } = req.body;
 
-    if (!email || !password || !first_name || !last_name || !role || !department) {
+    if (!username || !email || !password || !first_name || !last_name || !role || !department) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
+    // 🔍 Check if username already exists
+    const existingUserSnap = await admin
+      .firestore()
+      .collection('users')
+      .where('username', '==', username)
+      .limit(1)
+      .get();
+
+    if (!existingUserSnap.empty) {
+      return res.status(400).json({ message: 'Username is already taken.' });
+    }
+
+    // ✅ Create user in Firebase Auth
     const userRecord = await admin.auth().createUser({
       email,
       password,
@@ -98,12 +111,14 @@ const addUser = async (req, res) => {
 
     const uid = userRecord.uid;
 
+    // ✅ Save user data to Firestore
     await admin.firestore().collection('users').doc(uid).set({
       uid,
       first_name,
       last_name,
       role,
       department,
+      username,
     });
 
     return res.status(201).json({ message: 'User created and added to Firestore', uid });
@@ -125,6 +140,7 @@ const addUser = async (req, res) => {
     return res.status(500).json({ message: 'Failed to create user', error: error.message });
   }
 };
+
 
 const deleteDepartment = async (req, res) => {
   const { id } = req.params;

@@ -3,12 +3,12 @@ const fs = require('fs');
 const csv = require('csv-parser');
 
 exports.getAllCSVs = (req, res) => {
-  const contractsDir = path.join(__dirname, '..', 'contracts');
+  const contractsDir = path.join(__dirname, '..', 'database');
   const responseData = {};
 
   fs.readdir(contractsDir, (err, files) => {
     if (err) {
-      return res.status(500).json({ error: 'Failed to read contracts directory', details: err.message });
+      return res.status(500).json({ error: 'Failed to read database directory', details: err.message });
     }
 
     // Filter for .csv files only

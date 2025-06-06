@@ -2,6 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { getAllCSVs } = require('../controllers/csvController');
 
-router.get('/contracts', getAllCSVs);
+router.get('/database', getAllCSVs);
 
 module.exports = router;
