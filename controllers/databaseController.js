@@ -3,7 +3,7 @@ const { sheets, drive } = require('../googleClient');
 const csv = require('csv-parser');
 const stream = require('stream');
 
-// Folder ID for your Google Drive target
+// Google Drive folder where Sheets are stored
 const FOLDER_ID = '1YH_YdGQbuRQt5RCz8JHSEuvtoPV9r6Mx';
 
 exports.getAllDatabases = async (req, res) => {
@@ -15,16 +15,38 @@ exports.getAllDatabases = async (req, res) => {
 
     const files = driveRes.data.files;
 
+    // Get all Firestore database metadata
     const snapshot = await admin.firestore().collection('database').get();
     const firestoreData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    const result = files.map(sheet => {
-      const metadata = firestoreData.find(f => f.sheet_id === sheet.id) || {};
-      return {
-        ...sheet,
-        ...metadata,
-      };
-    });
+    const result = [];
+
+    for (const file of files) {
+      // 1. Fetch all sheet tabs for this file
+      const sheetInfo = await sheets.spreadsheets.get({ spreadsheetId: file.id });
+      const tabs = sheetInfo.data.sheets.map(s => s.properties.title); // ['Sheet1', 'Data', ...]
+
+      // 2. Match each tab to metadata, fallback if not found
+      tabs.forEach(tabName => {
+        const metadata = firestoreData.find(f =>
+          f.sheet_id === file.id && f.database_name === tabName
+        ) || {};
+
+        result.push({
+          id: metadata.id || `${file.id}-${tabName}`, // Use Firestore doc id or fallback
+          sheet_id: file.id,
+          database_name: tabName,
+          department_name: metadata.department_name || file.name,
+          created_by: metadata.created_by || '',
+          database_password: metadata.database_password || '',
+          columns: metadata.columns || [],
+          is_active: metadata.is_active ?? true,
+          sheet_url: file.webViewLink,
+          created_at: metadata.created_at || file.createdTime,
+          updated_at: metadata.updated_at || file.modifiedTime,
+        });
+      });
+    }
 
     res.status(200).json({ sheets: result });
   } catch (err) {
@@ -51,29 +73,23 @@ exports.createDatabase = async (req, res) => {
     let fileId = null;
     let spreadsheetUrl = '';
 
-    // 🔍 1. Search if file with department_name already exists in Drive
     const searchRes = await drive.files.list({
       q: `'${FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and name='${department_name}' and trashed=false`,
       fields: 'files(id, name, webViewLink)',
     });
 
     if (searchRes.data.files.length > 0) {
-      // 📄 File exists
       fileId = searchRes.data.files[0].id;
       spreadsheetUrl = searchRes.data.files[0].webViewLink;
     } else {
-      // 📁 Create new file
       const fileRes = await sheets.spreadsheets.create({
-        resource: {
-          properties: { title: department_name },
-        },
+        resource: { properties: { title: department_name } },
         fields: 'spreadsheetId,spreadsheetUrl',
       });
 
       fileId = fileRes.data.spreadsheetId;
       spreadsheetUrl = fileRes.data.spreadsheetUrl;
 
-      // 📦 Move to Drive folder
       await drive.files.update({
         fileId,
         addParents: FOLDER_ID,
@@ -82,35 +98,22 @@ exports.createDatabase = async (req, res) => {
       });
     }
 
-    // ✅ 2. Create a new sheet inside the file
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: fileId,
       requestBody: {
-        requests: [
-          {
-            addSheet: {
-              properties: {
-                title: database_name,
-              },
-            },
-          },
-        ],
+        requests: [{ addSheet: { properties: { title: database_name } } }],
       },
     });
 
-    // ✍️ 3. Add column headers to new sheet
     if (columns.length > 0) {
       await sheets.spreadsheets.values.update({
         spreadsheetId: fileId,
         range: `${database_name}!A1`,
         valueInputOption: 'RAW',
-        requestBody: {
-          values: [columns],
-        },
+        requestBody: { values: [columns] },
       });
     }
 
-    // 🗃️ 4. Store metadata in Firestore
     const now = admin.firestore.FieldValue.serverTimestamp();
 
     await admin.firestore().collection('database').add({
@@ -138,8 +141,31 @@ exports.createDatabase = async (req, res) => {
   }
 };
 
+// ✅ Append single or multiple rows manually
+exports.appendRowsToSheet = async (req, res) => {
+  try {
+    const { sheet_id, tab_name, rows } = req.body;
 
-// 📤 Append rows via CSV upload to a specific tab (database_name)
+    if (!sheet_id || !tab_name || !Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ message: 'Missing or invalid input' });
+    }
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheet_id,
+      range: `${tab_name}!A1`,
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: rows },
+    });
+
+    return res.status(200).json({ message: 'Row appended successfully' });
+  } catch (err) {
+    console.error('Error appending row:', err.message);
+    return res.status(500).json({ message: 'Failed to append row', error: err.message });
+  }
+};
+
+// 📤 Append rows via CSV upload to a specific tab
 exports.uploadCsvToSheet = async (req, res) => {
   try {
     const { sheet_id, database_name } = req.body;
@@ -181,8 +207,7 @@ exports.uploadCsvToSheet = async (req, res) => {
   }
 };
 
-// POST /api/database/confirm-password
-// controllers/databaseController.js
+// 🔐 Password confirmation
 exports.confirmPassword = async (req, res) => {
   const { sheet_id, input_password } = req.body;
 
@@ -210,6 +235,7 @@ exports.confirmPassword = async (req, res) => {
   return res.status(200).json({ message: 'Access granted' });
 };
 
+// 📄 Fetch all data from a sheet tab
 exports.getSheetData = async (req, res) => {
   try {
     const { sheet_id } = req.params;
@@ -218,7 +244,6 @@ exports.getSheetData = async (req, res) => {
       return res.status(400).json({ message: 'Missing sheet_id' });
     }
 
-    // Look up the database record to get the tab name
     const snapshot = await admin.firestore()
       .collection('database')
       .where('sheet_id', '==', sheet_id)
@@ -232,10 +257,9 @@ exports.getSheetData = async (req, res) => {
     const sheetDoc = snapshot.docs[0].data();
     const tabName = sheetDoc.database_name;
 
-    // No fixed range like A1:Z1000 — just use the sheet name to fetch all data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheet_id,
-      range: `${tabName}`, // fetches all available data in the sheet
+      range: `${tabName}`,
     });
 
     const [headers, ...rows] = response.data.values || [];
