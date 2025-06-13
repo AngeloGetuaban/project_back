@@ -10,6 +10,7 @@ const allowedOrigins = [
   'https://project-front-zeta.vercel.app',
   'https://bic-1.com/database/',
   'https://bic-1.com/database',
+  'https://bic-1.com',
   'http://localhost:5173']
 // ✅ CORS config
 app.use(cors({
