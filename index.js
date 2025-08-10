@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-
+const { startDatabasePolling } = require('./fetchScheduler');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -28,6 +28,8 @@ app.use('/api', indexRoutes);
 app.get('/api', (req, res) => {
   res.json({ message: 'Hello from backend!' });
 });
+
+startDatabasePolling();
 
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);

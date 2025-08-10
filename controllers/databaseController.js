@@ -280,3 +280,26 @@ exports.getSheetData = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch sheet data', error: err.message });
   }
 };
+
+exports.fetchLatestFromDB = async () => {
+  try {
+    const db = admin.firestore();
+    const snapshot = await db.collection('database').get();
+
+    if (snapshot.empty) {
+      console.log('[DB] No documents found', new Date().toISOString());
+      return [];
+    }
+
+    const allDocs = [];
+    snapshot.forEach(doc => {
+      allDocs.push({ id: doc.id, ...doc.data() });
+    });
+
+    console.log(`[DB] Fetched ${allDocs.length} documents`, new Date().toISOString());
+    return allDocs;
+  } catch (error) {
+    console.error('[DB] Error fetching documents:', error.message);
+    throw error;
+  }
+};
